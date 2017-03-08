@@ -14,13 +14,13 @@ Consists of:
 
 
 Todo:
--Get threading working
 -need to use the actual multicast group IP e.g. 224.1.1.1
 
 '''
 
 import socket
 import threading
+import thread
 import struct
 import time
 
@@ -50,6 +50,9 @@ class multicast_sender(object):
             print('Closing socket...')
             self.sock.close()
 
+
+    
+
 class tcp_server(object):
     'Listen for TCP connections from clients'
 
@@ -61,6 +64,11 @@ class tcp_server(object):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip_address, self.port))
+
+    def multi_wrapper(self):
+        'Wrapper method to call multicast sender'
+        msender = multicast_sender('224.1.1.1',50001)
+        msender.sender()
         
 
     def listener(self):
@@ -72,13 +80,13 @@ class tcp_server(object):
             connected_client, client_address = self.sock.accept()
             self.clients += 1
             print('{} clients connected'.format(self.clients))
-        
-        
+            if self.clients == 2:
+                thread.start_new_thread(self.multi_wrapper,())    
+                
 
 
 if __name__ == "__main__":
     
     tcp_connection = tcp_server('127.0.0.1',50002)
-    #threading.Thread(target = tcp_connection.listener()).start()
-    msender = multicast_sender('224.1.1.1',50001)
-    msender.sender()
+    thread.start_new_thread(tcp_connection.listener,())
+    
